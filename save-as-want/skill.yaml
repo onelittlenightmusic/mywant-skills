@@ -1,0 +1,19 @@
+skill:
+  name: save-as-want
+  version: "1.0"
+  description: Save skill usage as a MyWant memo and optionally deploy as a want
+  category: mywant-cli
+  commands:
+    - action: types-list
+      shell: "cd /Users/hiroyukiosaki/work/MyWant && ./bin/mywant types list 2>&1 | grep -v '^\\[' | grep -v '^Reading config'"
+      description: List available want types
+    - action: deploy
+      shell: "cd /Users/hiroyukiosaki/work/MyWant && ./bin/mywant wants create -f {yaml_path} 2>&1 | grep -v '^\\[' | grep -v '^Reading config'"
+      args: [yaml_path]
+      description: Deploy generated want YAML
+  output:
+    format: text
+  skill_log: "~/.mywant/skill-usage-log.md"
+  claude_code:
+    skill_dir: "~/.mywant/custom-types/mywant-skills/save-as-want"
+    linked_at: "~/.claude/skills/save-as-want"
