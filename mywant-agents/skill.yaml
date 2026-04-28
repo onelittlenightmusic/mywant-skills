@@ -1,0 +1,24 @@
+skill:
+  name: mywant-agents
+  version: "1.0"
+  description: List and inspect MyWant agents and their capabilities
+  category: mywant-cli
+  commands:
+    - action: agents-list
+      shell: "mywant agents list"
+      description: List all registered agents
+    - action: agent-get
+      shell: "mywant agents get {name}"
+      args: [name]
+      description: Get detailed agent info
+    - action: capabilities-list
+      shell: "mywant capabilities list"
+      description: List all available capabilities
+    - action: types-list
+      shell: "mywant types list"
+      description: List all registered want types
+  output:
+    format: text
+  claude_code:
+    skill_dir: "~/.mywant/custom-types/skills/mywant-agents"
+    linked_at: ".claude/skills/mywant-agents"

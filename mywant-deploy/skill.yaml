@@ -1,0 +1,31 @@
+skill:
+  name: mywant-deploy
+  version: "1.0"
+  description: Deploy wants from YAML config files or recipes
+  category: mywant-cli
+  commands:
+    - action: create-from-file
+      shell: "mywant wants create -f {yaml_path}"
+      args: [yaml_path]
+      description: Deploy wants from a YAML config file
+    - action: recipes-list
+      shell: "mywant recipes list"
+      description: List all available recipes
+    - action: recipe-get
+      shell: "mywant recipes get {name}"
+      args: [name]
+      description: Get recipe details
+    - action: recipe-deploy
+      shell: "mywant wants create -f {yaml_path}"
+      args: [yaml_path]
+      description: Deploy wants using a recipe YAML
+    - action: list-configs
+      shell: "ls yaml/config/"
+      description: List available config YAML files in the project
+  output:
+    format: text
+  config_dir: "yaml/config/"
+  recipe_dir: "yaml/recipes/"
+  claude_code:
+    skill_dir: "~/.mywant/custom-types/skills/mywant-deploy"
+    linked_at: ".claude/skills/mywant-deploy"

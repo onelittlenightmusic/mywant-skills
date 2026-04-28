@@ -1,0 +1,14 @@
+skill:
+  name: mywant-status
+  version: "1.0"
+  description: Check MyWant server, worker, GUI, and mock flight server process status
+  category: mywant-cli
+  commands:
+    - action: ps
+      shell: "mywant ps"
+      description: Show all running MyWant process statuses
+  output:
+    format: text
+  claude_code:
+    skill_dir: "~/.mywant/custom-types/skills/mywant-status"
+    linked_at: ".claude/skills/mywant-status"

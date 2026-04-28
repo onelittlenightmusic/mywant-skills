@@ -1,0 +1,41 @@
+skill:
+  name: mywant-wants
+  version: "1.0"
+  description: Manage MyWant want executions - list, get, stop, resume, restart, delete
+  category: mywant-cli
+  commands:
+    - action: list
+      shell: "mywant wants list"
+      description: List all wants with status
+    - action: get
+      shell: "mywant wants get {id}"
+      args: [id]
+      description: Get detailed want info and state history
+    - action: stop
+      shell: "mywant wants stop {id}"
+      args: [id]
+      description: Stop a running want
+    - action: resume
+      shell: "mywant wants resume {id}"
+      args: [id]
+      description: Resume a suspended want
+    - action: restart
+      shell: "mywant wants restart {id}"
+      args: [id]
+      description: Restart a want (stop + start)
+    - action: suspend
+      shell: "mywant wants suspend {id}"
+      args: [id]
+      description: Suspend a want
+    - action: delete
+      shell: "mywant wants delete {id}"
+      args: [id]
+      description: Delete a want
+    - action: export
+      shell: "mywant wants export"
+      description: Export all wants as YAML
+  output:
+    format: text
+  claude_code:
+    skill_dir: "~/.mywant/custom-types/skills/mywant-wants"
+    linked_at: ".claude/skills/mywant-wants"
