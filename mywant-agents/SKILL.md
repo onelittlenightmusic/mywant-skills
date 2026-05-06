@@ -1,30 +1,48 @@
 ---
 name: mywant-agents
-description: MyWantエージェント・ケイパビリティ・Wantタイプの一覧取得と詳細確認。登録済みエージェントや利用可能なケイパビリティを確認するときに使用する。
+description: MyWantのエージェント・ケイパビリティ・Wantタイプの一覧取得と詳細確認。登録済みエージェントや利用可能なケイパビリティを確認するときに使用する。**wantをデプロイする前に、そのタイプが登録済みか必ずここで確認すること。**
 metadata:
-  output-format: text
+  output-format: json
 ---
 
 $ARGUMENTS
 
-引数に応じて以下のコマンドを実行し、出力をそのまま表示してください。コマンドには `2>&1 | grep -v "^\[" | grep -v "^Reading config"` を付けてログ行を除去すること。
+引数は JSON 形式で `main.py` に渡します。引数省略時は `{"action":"agents-list"}` とみなします。
 
-作業ディレクトリ: `/Users/hiroyukiosaki/work/golang/mywant`
+## アクション一覧
 
-## コマンド一覧
+| action | 追加フィールド | 説明 |
+|---|---|---|
+| `agents-list` | — | 登録済みエージェント一覧 |
+| `agents-get` | `name` | エージェント詳細 |
+| `capabilities-list` | — | 全ケイパビリティ一覧 |
+| `capabilities-get` | `name` | ケイパビリティ詳細 |
+| `types-list` | — | **登録済み want type 一覧**（デプロイ前の確認に使う） |
+| `types-get` | `name` | want type の詳細定義 |
 
-| 操作 | コマンド |
-|---|---|
-| エージェント一覧 | `./bin/mywant agents list` |
-| エージェント詳細 | `./bin/mywant agents get <NAME>` |
-| ケイパビリティ一覧 | `./bin/mywant capabilities list` |
-| Wantタイプ一覧 | `./bin/mywant types list` |
+## want type の存在確認（重要）
 
-引数が不足している場合は「操作を指定してください（例: agents list / capabilities list / types list）」と伝えてください。
+want をデプロイする前に、そのタイプがサーバーに登録されているか確認してください。
+登録されていないタイプを使うとデプロイは失敗します。
+
+```json
+{"action": "types-list"}
+```
+
+出力例（`types` 配列に登録済みタイプ名が並ぶ）:
+```json
+{"ok": true, "types": [{"name": "rpg_try_keys"}, {"name": "rpg_control"}, ...], "count": 70}
+```
+
+特定タイプの存在を確認:
+```json
+{"action": "types-get", "name": "rpg_try_keys"}
+```
 
 ## 使用例
 
-- `/mywant-agents agents list` — 全エージェント一覧を表示
-- `/mywant-agents capabilities list` — 全ケイパビリティ一覧を表示
-- `/mywant-agents types list` — 登録済みWantタイプ一覧を表示
-- `/mywant-agents agents get flight_agent` — エージェント詳細を表示
+- `{"action":"types-list"}` — 全 want type を一覧（デプロイ前確認）
+- `{"action":"types-get","name":"rpg_observe"}` — want type の定義を確認
+- `{"action":"agents-list"}` — 全エージェント一覧を表示
+- `{"action":"capabilities-list"}` — 全ケイパビリティ一覧を表示
+- `{"action":"agents-get","name":"rpg_control_agent"}` — エージェント詳細を表示

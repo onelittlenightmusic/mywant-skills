@@ -1,61 +1,49 @@
 ---
 name: mywant-deploy
-description: YAMLファイルやレシピからMyWant wantをデプロイする。新しいwantの作成・レシピ一覧の確認・設定ファイルからのデプロイが必要なときに使用する。
+description: YAMLからMyWant wantをデプロイ・バリデーション、レシピ管理を行う。新しいwantの作成・レシピ一覧の確認・設定ファイルからのデプロイが必要なときに使用する。
 metadata:
-  output-format: text
+  output-format: json
 ---
 
 $ARGUMENTS
 
-引数に応じて以下のコマンドを実行し、出力をそのまま表示してください。コマンドには `2>&1 | grep -v "^\[" | grep -v "^Reading config"` を付けてログ行を除去すること。
+引数は JSON 形式で `main.py` に渡します。
 
-作業ディレクトリ: `/Users/hiroyukiosaki/work/golang/mywant`
+## 重要: デプロイ前に want type を確認すること
 
-## コマンド一覧
+存在しない type を指定するとデプロイが失敗します。
+デプロイ前に `/mywant-agents` で `{"action":"types-list"}` を実行して type 名を確認してください。
 
-| 操作 | コマンド |
-|---|---|
-| YAMLからデプロイ | `./bin/mywant wants create -f <YAML_PATH>` |
-| 設定ファイル一覧 | `ls yaml/config/` |
-| レシピ一覧 | `./bin/mywant recipes list` |
-| レシピ詳細 | `./bin/mywant recipes get <NAME>` |
-| インタラクティブ作成 | `./bin/mywant wants create -i` |
+## アクション一覧
 
-### 主要な設定ファイル
-
-| ファイル | 内容 |
-|---|---|
-| `yaml/config/config-travel.yaml` | 旅行計画（フライト+ホテル） |
-| `yaml/config/config-queue-system.yaml` | キューシステムデモ |
-| `yaml/config/config-qnet.yaml` | マルチストリームデモ |
-
-引数が不足している場合は「操作を指定してください（例: deploy yaml/config/config-travel.yaml / recipes list）」と伝えてください。
-
-## インライン YAML デプロイ
-
-引数にYAMLコンテンツが直接渡された場合（`wants:` で始まる文字列など）、`/tmp/mywant-deploy-<timestamp>.yaml` に書き出してからデプロイしてください。
-
-```
-# 例: このような呼び出し
-/mywant-deploy
-wants:
-  - metadata:
-      name: open-all-hall-doors
-      type: batch
-    spec:
-      params:
-        child_type: rpg_try_keys
-        targets: [hall-door-03, hall-door-04]
-```
-
-手順:
-1. `/tmp/mywant-deploy-<timestamp>.yaml` にYAMLを書き出す（Write ツール使用）
-2. `./bin/mywant wants create -f /tmp/mywant-deploy-<timestamp>.yaml` を実行
-3. 結果を表示
+| action | 追加フィールド | 説明 |
+|---|---|---|
+| `create` | `yaml` (必須), `name` (任意) | YAML文字列からwantをデプロイ |
+| `validate` | `yaml` (必須) | デプロイせずにYAMLを検証 |
+| `recipes-list` | — | 登録済みレシピ一覧 |
+| `recipe-get` | `name` | レシピ詳細を取得 |
+| `recipe-create-from-want` | `want_id`, `name`, `description`, `version` | 実行中wantからレシピを保存 |
 
 ## 使用例
 
-- `/mywant-deploy yaml/config/config-travel.yaml` — 旅行wantをデプロイ
-- `/mywant-deploy recipes list` — 利用可能なレシピ一覧を表示
-- `/mywant-deploy recipes get travel` — レシピ詳細を確認してからデプロイ
-- `/mywant-deploy wants:\n  - metadata:\n      name: ...` — インラインYAMLでデプロイ
+```json
+{"action": "create", "yaml": "wants:\n  - metadata:\n      name: my-want\n      type: rpg_control\n    spec:\n      params: {}"}
+```
+
+```json
+{"action": "validate", "yaml": "wants:\n  - metadata:\n      name: test\n      type: rpg_observe\n    spec:\n      params: {}"}
+```
+
+```json
+{"action": "recipes-list"}
+```
+
+```json
+{"action": "recipe-get", "name": "Queue System"}
+```
+
+## インライン YAML デプロイのフロー
+
+1. `/mywant-agents` で `{"action":"types-list"}` → 使いたい type が存在するか確認
+2. `/mywant-deploy` で `{"action":"validate", "yaml": "..."}` → 文法エラーがないか確認
+3. `/mywant-deploy` で `{"action":"create", "yaml": "..."}` → デプロイ実行
