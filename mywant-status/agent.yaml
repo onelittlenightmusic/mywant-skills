@@ -1,0 +1,15 @@
+agent:
+  metadata:
+    name: mywant_status_agent
+    capability: mywant_status
+    type: monitor
+  script:
+    path: ./main.py
+    timeout_seconds: 15
+  state_updates:
+    - { name: ok,      type: bool,   label: current, persistent: true, onFetchData: "ok" }
+    - { name: status,  type: string, label: current, persistent: true, onFetchData: "status" }
+    - { name: wants,   type: number, label: current, persistent: true, onFetchData: "wants" }
+    - { name: version, type: string, label: current, persistent: true, onFetchData: "version" }
+    - { name: error,   type: string, label: current, persistent: true, onFetchData: "error" }
+    - { name: summary, type: string, label: current, persistent: true, onFetchData: "status" }

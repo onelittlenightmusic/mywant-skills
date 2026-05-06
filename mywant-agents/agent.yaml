@@ -1,0 +1,13 @@
+agent:
+  metadata:
+    name: mywant_agents_agent
+    capability: mywant_agents
+    type: do
+  script:
+    path: ./main.py
+    timeout_seconds: 30
+  state_updates:
+    - { name: ok,     type: bool,   label: current, persistent: true, onFetchData: "ok" }
+    - { name: count,  type: number, label: current, persistent: true, onFetchData: "count" }
+    - { name: error,  type: string, label: current, persistent: true, onFetchData: "error" }
+    - { name: summary, type: string, label: current, persistent: true, onFetchData: "count" }

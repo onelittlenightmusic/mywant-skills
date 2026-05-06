@@ -1,0 +1,16 @@
+agent:
+  metadata:
+    name: mywant_deploy_agent
+    capability: mywant_deploy
+    type: do
+  script:
+    path: ./main.py
+    timeout_seconds: 60
+  state_updates:
+    - { name: ok,         type: bool,   label: current, persistent: true, onFetchData: "ok" }
+    - { name: id,         type: string, label: current, persistent: true, onFetchData: "id" }
+    - { name: status,     type: string, label: current, persistent: true, onFetchData: "status" }
+    - { name: valid,      type: bool,   label: current, persistent: true, onFetchData: "valid" }
+    - { name: count,      type: number, label: current, persistent: true, onFetchData: "count" }
+    - { name: error,      type: string, label: current, persistent: true, onFetchData: "error" }
+    - { name: summary,    type: string, label: current, persistent: true, onFetchData: "id" }

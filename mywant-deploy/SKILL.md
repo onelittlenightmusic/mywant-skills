@@ -31,8 +31,31 @@ $ARGUMENTS
 
 引数が不足している場合は「操作を指定してください（例: deploy yaml/config/config-travel.yaml / recipes list）」と伝えてください。
 
+## インライン YAML デプロイ
+
+引数にYAMLコンテンツが直接渡された場合（`wants:` で始まる文字列など）、`/tmp/mywant-deploy-<timestamp>.yaml` に書き出してからデプロイしてください。
+
+```
+# 例: このような呼び出し
+/mywant-deploy
+wants:
+  - metadata:
+      name: open-all-hall-doors
+      type: batch
+    spec:
+      params:
+        child_type: rpg_try_keys
+        targets: [hall-door-03, hall-door-04]
+```
+
+手順:
+1. `/tmp/mywant-deploy-<timestamp>.yaml` にYAMLを書き出す（Write ツール使用）
+2. `./bin/mywant wants create -f /tmp/mywant-deploy-<timestamp>.yaml` を実行
+3. 結果を表示
+
 ## 使用例
 
 - `/mywant-deploy yaml/config/config-travel.yaml` — 旅行wantをデプロイ
 - `/mywant-deploy recipes list` — 利用可能なレシピ一覧を表示
 - `/mywant-deploy recipes get travel` — レシピ詳細を確認してからデプロイ
+- `/mywant-deploy wants:\n  - metadata:\n      name: ...` — インラインYAMLでデプロイ
