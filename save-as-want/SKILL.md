@@ -1,170 +1,153 @@
 ---
 name: save-as-want
-description: 会話中に使用したskillの内容をMyWantにメモとして保存し、対応するwantタイプがあればwantとしてデプロイする。
+description: スキルが mywant の machine-readable skill として成立しているか検証し、want type YAML を生成・登録する。
+compatibility:
+  python: ">=3.9"
 metadata:
-  output-format: text
+  type-name: save_as_want
+  category: mywant
+  final-result-field: summary
 ---
 
-$ARGUMENTS
+`${CLAUDE_SKILL_DIR}/main.py` に JSON 引数を渡す。
 
-## 目的
-
-会話中に使用したskillの内容をMyWantに記録する。
-
-1. **メモ保存**: `~/.mywant/skill-usage-log.md` に使用履歴を追記
-2. **Want生成**: 対応するwantタイプがあればYAMLを生成してデプロイ
-
-作業ディレクトリ: `/Users/hiroyukiosaki/work/MyWant`
+```bash
+python3 "${CLAUDE_SKILL_DIR}/main.py" $ARGUMENTS
+```
 
 ---
 
-## 処理手順
+## アクション一覧
 
-### Step 1: コンテキストの収集
+### `check` — machine-readable 判定
 
-引数 (`$ARGUMENTS`) から、または引数が空の場合は**直前の会話内容**から以下を推定してください:
+スキルが mywant agent として成立しているか検証する。
 
-| フィールド | 説明 | 例 |
+**判定基準（すべて満たすこと）**:
+1. スキルディレクトリが `~/.claude/skills/` または `~/.mywant/custom-types/` 以下に存在する
+2. `agent.yaml` が存在し、以下のフィールドを含む:
+   - `agent.name` — エージェント名
+   - `agent.type` — `do` または `monitor`
+   - `agent.script` — 実在する実行可能スクリプト
+   - `agent.state_updates` — 出力フィールドのマッピング（1件以上）
+3. 参照スクリプトが実行可能（`chmod +x`）
+
+```json
+{"action": "check", "skill": "rpg-try-keys"}
+```
+
+**出力**:
+```json
+{
+  "ok": true,
+  "machine_readable": true,
+  "skill": "rpg-try-keys",
+  "skill_dir": "/path/to/skill",
+  "checks": {
+    "skill_found": true,
+    "has_agent_yaml": true,
+    "agent_yaml_parseable": true,
+    "has_agent_name": true,
+    "agent_type_valid": true,
+    "has_script_field": true,
+    "script_exists": true,
+    "script_executable": true,
+    "has_state_updates": true,
+    "state_updates_count": 5
+  },
+  "issues": [],
+  "agent_name": "rpg_try_keys_agent",
+  "agent_type": "do",
+  "type_name": "rpg_try_keys",
+  "already_registered": false
+}
+```
+
+---
+
+### `create-type` — want type YAML 生成・登録
+
+`check` が通ったスキルに対して want type YAML を作成し、オプションで mywant に登録する。
+
+**重要**: `type_definition` は**呼び出し元 LLM が生成する**。
+スキルの `SKILL.md`・`main.py`・`agent.yaml` を読んで JSON で渡すこと。
+
+```json
+{
+  "action": "create-type",
+  "skill": "my-skill",
+  "install": true,
+  "type_definition": {
+    "metadata": {
+      "name": "my_skill",
+      "title": "My Skill",
+      "description": "何をするスキルか",
+      "version": "1.0",
+      "category": "...",
+      "pattern": "independent"
+    },
+    "finalResultField": "summary",
+    "parameters": [
+      {"name": "target", "type": "string", "required": true, "description": "対象"}
+    ],
+    "state": [
+      {"name": "skill_json_arg", "type": "string", "label": "current", "persistent": false, "initialValue": ""},
+      {"name": "ok",             "type": "bool",   "label": "current", "persistent": true,  "initialValue": false},
+      {"name": "error",          "type": "string", "label": "current", "persistent": true,  "initialValue": ""},
+      {"name": "summary",        "type": "string", "label": "current", "persistent": true,  "initialValue": ""}
+    ],
+    "finalizeWhen": {
+      "achieved": {"field": "ok",    "operator": "==", "value": true},
+      "failed":   {"field": "error", "operator": "!=", "value": ""}
+    },
+    "onInitialize": {
+      "current": {
+        "skill_json_arg": "{\"target\":\"${target}\"}"
+      }
+    },
+    "requires": ["my_skill"]
+  }
+}
+```
+
+**Python がやること**:
+- `type_definition` を `wantType:` でラップして YAML 変換
+- `<skill_dir>/<type_name>.yaml` に書き込み
+- `install: true` なら `POST /api/v1/want-types` で即時登録（ホットリロード）
+
+**LLM がやること**:
+- スキルの `SKILL.md`・`main.py` を読んでパラメータ・出力フィールドを理解
+- `state`・`parameters`・`finalizeWhen`・`onInitialize` を設計して渡す
+
+**出力**:
+```json
+{
+  "ok": true,
+  "type_name": "my_skill",
+  "yaml_path": "/path/to/skill/my_skill.yaml",
+  "installed": true
+}
+```
+
+---
+
+## 典型的な使い方（LLM 向け手順）
+
+1. `check` でスキルが machine-readable か確認する
+2. `issues` が空でなければ `agent.yaml` を修正してから再実行
+3. `check` が通ったら、スキルの `SKILL.md` と `main.py` を読む
+4. want type 定義 JSON を設計し、`create-type` に渡す
+5. `already_registered: false` なら `install: true` で即時登録
+
+---
+
+## `type_definition` 設計ガイド（LLM 向け）
+
+| フィールド | 参照元 | 注意 |
 |---|---|---|
-| `skill_name` | 使用したskillの名前 | `mywant-deploy`, `mywant-wants` |
-| `summary` | 何をしたか（1〜2行） | `config-travel.yamlからtravel wantをデプロイした` |
-| `params` | 使用した主要パラメータ | `yaml: config-travel.yaml` |
-| `result` | 実行結果の概要 | `成功: want ID abc123が生成された` |
-
-引数形式の例:
-- `skill=mywant-deploy context="travel wantをデプロイ" params="config-travel.yaml"` — 明示的指定
-- `mywant-deploy travel yaml/config/config-travel.yaml` — 位置引数として解析
-- (空) — 直前の会話から自動推定
-
----
-
-### Step 2: メモの保存
-
-以下のコマンドでメモを `~/.mywant/skill-usage-log.md` に追記してください:
-
-```bash
-LOGFILE=~/.mywant/skill-usage-log.md
-[ -f "$LOGFILE" ] || printf "# MyWant Skill Usage Log\n\n" > "$LOGFILE"
-cat >> "$LOGFILE" << 'ENTRY'
-
-## {YYYY-MM-DD HH:MM} — {skill_name}
-
-**Summary**: {summary}
-**Params**: {params}
-**Result**: {result}
-
-ENTRY
-```
-
-`{YYYY-MM-DD HH:MM}` には `date '+%Y-%m-%d %H:%M'` の出力を使ってください。
-
----
-
-### Step 3: 対応するWantタイプの確認
-
-```bash
-cd /Users/hiroyukiosaki/work/MyWant && ./bin/mywant types list 2>&1 | grep -v "^\[" | grep -v "^Reading config"
-```
-
-出力されたタイプ一覧と会話コンテキストを照合し、デプロイ可能なwantタイプを判定してください。
-
-**マッピングの判定基準:**
-
-| 会話内容・skill | 候補wantタイプ | デプロイ判断 |
-|---|---|---|
-| リマインダー設定・時間通知 | `reminder` | ○ デプロイ可能 |
-| 情報収集・調査・ナレッジ | `knowledge` | ○ デプロイ可能 |
-| Slack投稿・通知 | `slack_post` | ○ デプロイ可能 |
-| Teams通知 | `teams_notify` | ○ デプロイ可能 |
-| 天気確認 | `weather` | ○ デプロイ可能 |
-| 交通経路確認 | `transit` | ○ デプロイ可能 |
-| フライト予約確認 | `flight` | ○ デプロイ可能 |
-| ホテル予約確認 | `hotel` | ○ デプロイ可能 |
-| Gmail操作 | `gmail` | ○ デプロイ可能 |
-| コマンド実行 | `execution_result` | ○ デプロイ可能 |
-| wants管理操作のみ | なし | ✗ メモのみ |
-| status確認のみ | なし | ✗ メモのみ |
-| agents/capabilities確認 | なし | ✗ メモのみ |
-
----
-
-### Step 4: YAMLの生成とデプロイ（対応タイプがある場合）
-
-対応するwantタイプが見つかった場合のみ実行してください。
-
-**YAMLテンプレート:**
-
-```yaml
-wants:
-  - metadata:
-      name: {skill-name}-{yyyymmdd}
-      type: {want_type}
-      labels:
-        source: skill-usage
-        skill: {skill_name}
-    spec:
-      params:
-        {param_key}: "{param_value}"
-        # ... 会話コンテキストから推定したパラメータを追加
-```
-
-**タイプ別パラメータ例:**
-
-`reminder` タイプ:
-```yaml
-spec:
-  params:
-    message: "{リマインダーの内容}"
-    duration_from_now: "{時間: 例 30m, 2h, 1d}"
-    ahead: "5m"
-    require_reaction: true
-```
-
-`knowledge` タイプ:
-```yaml
-spec:
-  params:
-    topic: "{調査対象トピック}"
-    output_path: "notes/{topic_slug}.md"
-    refresh_interval: "24h"
-    depth: "comprehensive"
-```
-
-**デプロイコマンド:**
-```bash
-TMPFILE=/tmp/save-as-want-$(date +%Y%m%d%H%M%S).yaml
-cat > "$TMPFILE" << 'YAML'
-{生成したYAMLをここに}
-YAML
-cd /Users/hiroyukiosaki/work/MyWant && ./bin/mywant wants create -f "$TMPFILE" 2>&1 | grep -v "^\[" | grep -v "^Reading config"
-```
-
----
-
-### Step 5: 結果の報告
-
-以下の形式で結果を表示してください:
-
-```
-✅ メモを保存しました: ~/.mywant/skill-usage-log.md
-
-Skill: {skill_name}
-内容: {summary}
-
-{対応wantタイプがある場合のみ}
-✅ Wantをデプロイしました: {want_id}
-  タイプ: {want_type}
-  パラメータ: {主要パラメータ}
-
-{対応wantタイプがない場合のみ}
-ℹ️ 対応するwantタイプが見つからなかったため、メモのみ保存しました。
-```
-
----
-
-## 使用例
-
-- `/save-as-want` — 直前の操作を会話コンテキストから推定して保存
-- `/save-as-want skill=mywant-deploy context="travel wantをデプロイ" params="config-travel.yaml"` — 明示指定
-- `/save-as-want "remindert 明日の朝9時に健康診断リマインダー"` — reminderとして保存＋デプロイ
-- `/save-as-want skill=mywant-wants context="abc123のwantを停止した"` — メモのみ保存
+| `metadata.name` | `agent.yaml` の `agent.name` から `_agent` を除いたもの | スネークケース |
+| `parameters` | `SKILL.md` のパラメータ表 / `main.py` の引数処理 | |
+| `state` | `agent.yaml` の `state_updates` + 必要な中間フィールド | `skill_json_arg` は必須 |
+| `finalizeWhen.achieved` | `ok == true` が多い | スキルの成功条件による |
+| `onInitialize.skill_json_arg` | `main.py` が受け取る JSON を `${param}` で組み立て | |
+| `requires` | `[type_name]` — mywant がエージェントを探す際のキー | |
