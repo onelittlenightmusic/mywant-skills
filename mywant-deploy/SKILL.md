@@ -47,3 +47,15 @@ $ARGUMENTS
 1. `/mywant-agents` で `{"action":"types-list"}` → 使いたい type が存在するか確認
 2. `/mywant-deploy` で `{"action":"validate", "yaml": "..."}` → 文法エラーがないか確認
 3. `/mywant-deploy` で `{"action":"create", "yaml": "..."}` → デプロイ実行
+
+## スキルが利用できない場合
+
+もし `mywant-deploy` スキルが見つからない場合は、MyWantが適切にインストールされているか確認してください。以下のコマンドでスキルのインストールが可能です:
+
+```bash
+mywant skills install gemini
+# または
+mywant skills install claude
+```
+
+これにより、必要なエージェント機能が環境にセットアップされます。
