@@ -42,6 +42,32 @@ $ARGUMENTS
 {"action": "recipe-get", "name": "Queue System"}
 ```
 
+## キャラクターの近くにデプロイする
+
+want は既定では作成順に空きセルへ並べられるため、キャンバス上でプレイヤーから
+遠く離れた場所に出ます。デプロイ先を「誰かの隣」にしたいときは
+`mywant.io/canvas-near` ラベルを付けます。座標はサーバーが**デプロイ時点の**
+位置から解決するので、YAML 側が座標を知っている必要はありません。
+
+```yaml
+wants:
+  - metadata:
+      name: door-03-keys
+      type: rpg_try_keys
+      labels:
+        mywant.io/canvas-near: chr-9eca4b3d   # キャラクターID、または "cursor"
+    spec:
+      params: {}
+```
+
+- 値はキャラクターID。「今操作している人の隣」でよければ `cursor`（ライブカーソルの
+  うち最後に動いたものを見ます。誰も操作していなければ CursorMan、それも盤面に
+  出ていなければ通常配置）。
+- 置かれるのは**隣接セル**で、本人が立っているセルではありません。
+- 隣が埋まっていれば外側へ探索します。複数まとめてデプロイしても重なりません。
+- `mywant.io/canvas-x` / `canvas-y` を明示した場合はそちらが優先されます。
+- 該当キャラクターが見つからない場合はエラーにならず、通常の自動配置になります。
+
 ## インライン YAML デプロイのフロー
 
 1. `/mywant-agents` で `{"action":"types-list"}` → 使いたい type が存在するか確認
